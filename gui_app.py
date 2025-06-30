@@ -420,12 +420,19 @@ class ModernChatApp:
         self.add_message_display('user', message)
         self.show_messages_view()
         self.send_btn.config(state=tk.DISABLED, text="...")
+        
+        target_conversation = self.current_conversation
+        history = [
+            {"role": msg["role"], "content": msg["content"]} 
+            for msg in target_conversation['messages'][:-1]
+        ]
+
         def process_message():
             try:
-                response = self.joat_system.process_query(message)
-                self.message_queue.put(('response', response))
+                response_data = self.joat_system.process_query(message, history)
+                self.message_queue.put(('response', (response_data, target_conversation)))
             except Exception as e:
-                self.message_queue.put(('error', str(e)))
+                self.message_queue.put(('error', (str(e), target_conversation)))
         threading.Thread(target=process_message, daemon=True).start()
 
     def check_ollama_status(self):
@@ -465,24 +472,29 @@ class ModernChatApp:
                 if msg_type == 'status':
                     self.update_status(data)
                 elif msg_type == 'response':
-                    if self.current_conversation:
-                        self.current_conversation['messages'].append({
+                    response_data, conversation = data
+                    response_content = response_data['response']
+                    if conversation:
+                        conversation['messages'].append({
                             'role': 'assistant',
-                            'content': data,
+                            'content': response_content,
                             'timestamp': datetime.now()
                         })
-                        self.add_message_display('assistant', data)
-                        self.show_messages_view()
+                        if conversation == self.current_conversation:
+                            self.add_message_display('assistant', response_content)
+                            self.show_messages_view()
                 elif msg_type == 'error':
-                    if self.current_conversation:
-                        error_msg = f"Error: {data}"
-                        self.current_conversation['messages'].append({
+                    error_content, conversation = data
+                    if conversation:
+                        error_msg = f"Error: {error_content}"
+                        conversation['messages'].append({
                             'role': 'assistant',
                             'content': error_msg,
                             'timestamp': datetime.now()
                         })
-                        self.add_message_display('assistant', error_msg)
-                        self.show_messages_view()
+                        if conversation == self.current_conversation:
+                            self.add_message_display('assistant', error_msg)
+                            self.show_messages_view()
                 self.send_btn.config(state=tk.NORMAL, text="→")
         except queue.Empty:
             pass

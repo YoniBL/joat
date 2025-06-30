@@ -18,7 +18,7 @@ A multi-model conversation system that intelligently routes user queries to spec
 ```bash
 python gui_app.py
 # or
-python app_launcher.py
+./start_gui.sh
 ```
 
 **Features:**
@@ -199,48 +199,33 @@ mathematical_reasoning: wizard-math,
 
 ## 🛠️ **Troubleshooting**
 
-### **Ollama Issues**
-```bash
-# Check if Ollama is running
-ollama list
+See the [Advanced Guide](docs/ADVANCED_GUIDE.md) for troubleshooting and performance tips.
 
-# Restart Ollama
-brew services restart ollama
+## 📜 License
 
-# Check Ollama logs
-brew services info ollama
-```
+The JOAT source code is licensed under the **Apache License 2.0**. You can find the full license text in the [LICENSE](LICENSE) file.
 
-### **Model Issues**
-```bash
-# List installed models
-ollama list
+### AI Model Licenses
+The AI models used by this project have their own licenses. When you use JOAT, you are also subject to the license terms of the underlying models, which include:
+- **Llama 3 Community License**: Applies to models like `llama3` and `codellama`.
+- **Apache 2.0**: Applies to models like `mistral`.
 
-# Remove a model
-ollama rm model-name
-
-# Pull a model again
-ollama pull model-name
-```
-
-### **GUI Issues**
-- Make sure you have tkinter: `python -c "import tkinter"`
-- On macOS, tkinter is usually included with Python
-- On Linux: `sudo apt-get install python3-tk`
+It is your responsibility to review and comply with the terms of each model's license and its Acceptable Use Policy.
 
 ## 📁 **File Structure**
 
 ```
 joat/
 ├── main.py              # CLI version
+├── app.py               # Core application logic
 ├── gui_app.py           # Desktop GUI version
 ├── app_launcher.py      # GUI launcher with checks
 ├── ollama_client.py     # Ollama API client
 ├── setup_ollama.py      # Model setup script
 ├── models_mapping.txt   # Task-to-model mapping
 ├── requirements.txt     # Python dependencies
-├── LOCAL_SETUP.md       # Detailed local setup guide
-└── README.md           # This file
+├── docs/                # Documentation files
+└── README.md            # This file
 ```
 
 ## 🎨 **GUI Features**
@@ -281,9 +266,6 @@ joat/
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 **License**
-
-[Add your license information here]
 
 ---
 

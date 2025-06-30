@@ -106,7 +106,6 @@ class LocalModelManager:
     
     def __init__(self, models_mapping: Dict[str, str]):
         self.models_mapping = models_mapping
-        self.conversations: Dict[str, Conversation] = {}
         self.ollama_client = OllamaClient()
         self.model_manager = OllamaModelManager()
         
@@ -114,20 +113,9 @@ class LocalModelManager:
         if not self.ollama_client.is_ollama_running():
             logger.warning("Ollama is not running. Please start Ollama first.")
     
-    def get_or_create_conversation(self, model_name: str) -> Conversation:
-        """Get existing conversation or create a new one for the model."""
-        if model_name not in self.conversations:
-            self.conversations[model_name] = Conversation(
-                model_name=model_name,
-                messages=[],
-                created_at=datetime.now()
-            )
-        return self.conversations[model_name]
-    
-    def send_query(self, model_name: str, query: str) -> str:
+    def send_query(self, model_name: str, query: str, history: List[Dict[str, str]]) -> str:
         """Send a query to the specified local model and return the response."""
-        conversation = self.get_or_create_conversation(model_name)
-        conversation.add_message("user", query)
+        messages = history + [{"role": "user", "content": query}]
         
         # Check if Ollama is running
         if not self.ollama_client.is_ollama_running():
@@ -143,13 +131,12 @@ class LocalModelManager:
             # Generate response using local model
             response = self.ollama_client.generate_response(
                 model_name=model_name,
-                messages=conversation.get_context(),
+                messages=messages,
                 max_tokens=1000,
                 temperature=0.7
             )
             
-            # Add response to conversation
-            conversation.add_message("assistant", response)
+            # The client will manage conversation history
             return response
                 
         except Exception as e:
@@ -171,7 +158,6 @@ class JOATSystem:
         self.models_mapping = self.load_models_mapping(models_mapping_file)
         self.task_classifier = TaskClassifier()
         self.model_manager = LocalModelManager(self.models_mapping)
-        self.current_model = None
     
     def load_models_mapping(self, file_path: str) -> Dict[str, str]:
         """Load the models mapping from the specified file."""
@@ -198,15 +184,12 @@ class JOATSystem:
             logger.error(f"Error loading models mapping: {e}")
             return {}
     
-    def process_query(self, query: str) -> str:
+    def process_query(self, query: str, history: List[Dict[str, str]] = None) -> Dict:
         """Process a user query and return the response."""
+        if history is None:
+            history = []
         if not query.strip():
-            return "Please provide a query."
-        
-        # If we have a current model and the query seems like a continuation
-        if self.current_model and self.is_continuation_query(query):
-            # Continue with the current model
-            return self.model_manager.send_query(self.current_model, query)
+            return {"response": "Please provide a query.", "task_type": "error", "model_used": None}
         
         # Classify the task
         task_type = self.task_classifier.classify_task(query)
@@ -215,46 +198,21 @@ class JOATSystem:
         # Get the appropriate model for this task
         model_name = self.models_mapping.get(task_type)
         if not model_name:
-            return f"Error: No model configured for task type '{task_type}'"
+            return {
+                "response": f"Error: No model configured for task type '{task_type}'",
+                "task_type": task_type,
+                "model_used": None
+            }
         
-        # Set the current model
-        self.current_model = model_name
         logger.info(f"Using model: {model_name} for task: {task_type}")
         
         # Send the query to the model
-        return self.model_manager.send_query(model_name, query)
-    
-    def is_continuation_query(self, query: str) -> bool:
-        """Determine if a query is likely a continuation of the current conversation."""
-        continuation_indicators = [
-            'continue', 'more', 'and', 'also', 'further', 'next', 'what about',
-            'how about', 'can you', 'could you', 'please', 'thanks', 'thank you'
-        ]
-        
-        query_lower = query.lower()
-        return any(indicator in query_lower for indicator in continuation_indicators)
-    
-    def get_conversation_history(self, model_name: Optional[str] = None) -> List[Dict[str, str]]:
-        """Get conversation history for a specific model or all models."""
-        if model_name:
-            conversation = self.model_manager.conversations.get(model_name)
-            return conversation.messages if conversation else []
-        else:
-            all_messages = []
-            for conv in self.model_manager.conversations.values():
-                all_messages.extend(conv.messages)
-            return all_messages
-    
-    def clear_conversation(self, model_name: Optional[str] = None):
-        """Clear conversation history for a specific model or all models."""
-        if model_name:
-            if model_name in self.model_manager.conversations:
-                del self.model_manager.conversations[model_name]
-                if self.current_model == model_name:
-                    self.current_model = None
-        else:
-            self.model_manager.conversations.clear()
-            self.current_model = None
+        response = self.model_manager.send_query(model_name, query, history)
+        return {
+            "response": response,
+            "task_type": task_type,
+            "model_used": model_name
+        }
     
     def check_ollama_status(self) -> Dict:
         """Check Ollama and model status."""
@@ -294,6 +252,7 @@ def main():
     
     print()
     
+    history = []
     while True:
         try:
             # Get user input
@@ -307,10 +266,9 @@ def main():
                 print("👋 Goodbye!")
                 break
             elif query.lower() == 'history':
-                history = system.get_conversation_history()
                 if history:
                     print("\n📜 Conversation History:")
-                    for i, msg in enumerate(history[-10:], 1):  # Show last 10 messages
+                    for i, msg in enumerate(history[-20:], 1):  # Show last 20 messages
                         role = "🤖" if msg["role"] == "assistant" else "👤"
                         print(f"{i}. {role} {msg['content'][:100]}...")
                 else:
@@ -318,7 +276,7 @@ def main():
                 print()
                 continue
             elif query.lower() == 'clear':
-                system.clear_conversation()
+                history = []
                 print("🗑️ Conversation history cleared.")
                 print()
                 continue
@@ -334,8 +292,15 @@ def main():
             
             # Process the query
             print("🤖 Processing...")
-            response = system.process_query(query)
+            user_message = {"role": "user", "content": query}
+            
+            response_data = system.process_query(query, history)
+            response = response_data["response"]
+            
             print(f"🤖 {response}")
+            
+            history.append(user_message)
+            history.append({"role": "assistant", "content": response})
             print()
             
         except KeyboardInterrupt:
