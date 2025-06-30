@@ -42,4 +42,4 @@ echo "   Press Ctrl+C to exit"
 echo ""
 
 # Launch the GUI app
-python3 app.py 
+python3 gui_app.py 

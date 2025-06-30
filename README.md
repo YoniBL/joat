@@ -16,8 +16,10 @@ A multi-model conversation system that intelligently routes user queries to spec
 
 ### **Desktop GUI (Recommended)**
 ```bash
+# On any OS (macOS, Windows, Linux)
 python gui_app.py
-# or
+
+# Or on macOS/Linux
 ./start_gui.sh
 ```
 
@@ -218,8 +220,8 @@ It is your responsibility to review and comply with the terms of each model's li
 joat/
 ├── main.py              # CLI version
 ├── app.py               # Core application logic
-├── gui_app.py           # Desktop GUI version
-├── app_launcher.py      # GUI launcher with checks
+├── gui_app.py           # The GUI application window
+├── start_gui.sh         # GUI launch script for macOS/Linux
 ├── ollama_client.py     # Ollama API client
 ├── setup_ollama.py      # Model setup script
 ├── models_mapping.txt   # Task-to-model mapping
