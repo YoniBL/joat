@@ -41,9 +41,15 @@ class OllamaClient:
             return []
     
     def is_model_available(self, model_name: str) -> bool:
-        """Check if a specific model is available."""
+        """Check if a specific model is available, accepting both with and without :latest tag."""
         available_models = self.get_available_models()
-        return model_name in available_models
+        # Accept model_name, model_name:latest, and model_name without tag as equivalent
+        candidates = {model_name}
+        if ':' not in model_name:
+            candidates.add(f"{model_name}:latest")
+        elif model_name.endswith(":latest"):
+            candidates.add(model_name.split(":")[0])
+        return any(candidate in available_models for candidate in candidates)
     
     def pull_model(self, model_name: str) -> bool:
         """Pull a model from Ollama library."""
