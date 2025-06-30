@@ -154,10 +154,25 @@ class LocalModelManager:
 class JOATSystem:
     """Main system class that orchestrates the entire process."""
     
-    def __init__(self, models_mapping_file: str = "models_mapping.txt"):
+    def __init__(self, models_mapping_file: str = "models_mapping.txt", essential_mode: bool = False):
         self.models_mapping = self.load_models_mapping(models_mapping_file)
         self.task_classifier = TaskClassifier()
         self.model_manager = LocalModelManager(self.models_mapping)
+        self.essential_mode = essential_mode
+        # Define high-priority fallback models for each task
+        self.high_priority_fallbacks = {
+            'coding_generation': 'codellama',
+            'text_generation': 'llama3',
+            'mathematical_reasoning': 'wizard-math',
+            'commonsense_reasoning': 'llama3',  # fallback to general LLM
+            'question_answering': 'mistral',
+            'dialogue_systems': 'llama3',
+            'summarization': 'mistral',
+            'sentiment_analysis': 'llama3',  # fallback to general LLM
+            'visual_question_answering': None,  # no high-priority fallback
+            'video_question_answering': 'llama3',
+        }
+        self.high_priority_models = {'codellama', 'llama3', 'wizard-math', 'mistral'}
     
     def load_models_mapping(self, file_path: str) -> Dict[str, str]:
         """Load the models mapping from the specified file."""
@@ -197,17 +212,34 @@ class JOATSystem:
         
         # Get the appropriate model for this task
         model_name = self.models_mapping.get(task_type)
+        used_fallback = False
+        fallback_reason = None
+        
+        if self.essential_mode:
+            # If the mapped model is not high-priority, fallback if possible
+            if model_name not in self.high_priority_models:
+                fallback_model = self.high_priority_fallbacks.get(task_type)
+                if fallback_model and fallback_model in self.high_priority_models:
+                    used_fallback = True
+                    fallback_reason = f"Essential mode: Falling back from '{model_name}' to high-priority model '{fallback_model}' for task '{task_type}'."
+                    model_name = fallback_model
+                else:
+                    return {
+                        "response": f"Essential mode: No high-priority model available for task type '{task_type}'. Please install a suitable model or disable essential mode.",
+                        "task_type": task_type,
+                        "model_used": None
+                    }
         if not model_name:
             return {
                 "response": f"Error: No model configured for task type '{task_type}'",
                 "task_type": task_type,
                 "model_used": None
             }
-        
         logger.info(f"Using model: {model_name} for task: {task_type}")
-        
         # Send the query to the model
         response = self.model_manager.send_query(model_name, query, history)
+        if used_fallback and fallback_reason:
+            response = f"[INFO] {fallback_reason}\n{response}"
         return {
             "response": response,
             "task_type": task_type,

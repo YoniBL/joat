@@ -6,7 +6,7 @@ Tests all specialized models to ensure they're working correctly.
 
 import sys
 import os
-from main import JOATSystem
+from app import JOATSystem
 
 def test_models():
     """Test all models with sample queries."""
@@ -105,6 +105,52 @@ def test_specific_model(model_name: str, query: str):
     except Exception as e:
         print(f"❌ Failed: {e}")
 
+def test_essential_mode():
+    """Test essential mode fallback logic."""
+    print("\n🧪 JOAT Essential Mode Fallback Test")
+    print("=" * 50)
+    
+    # Initialize the system in essential mode
+    system = JOATSystem(essential_mode=True)
+    
+    if not system.models_mapping:
+        print("❌ Error: Could not load models mapping")
+        return
+    
+    print(f"✅ Loaded {len(system.models_mapping)} model mappings (Essential Mode)")
+    print()
+    
+    # Test queries for each task type
+    test_queries = {
+        'coding_generation': "Write a Python function to calculate fibonacci numbers",
+        'text_generation': "Write a short story about a robot learning to paint",
+        'mathematical_reasoning': "Solve the equation: 3x + 7 = 22",
+        'commonsense_reasoning': "Why do people wear coats in winter?",
+        'question_answering': "What is the capital of Japan?",
+        'dialogue_systems': "Tell me a joke",
+        'summarization': "Summarize the key points of machine learning",
+        'sentiment_analysis': "Analyze the sentiment of this text: 'I love this new phone!'",
+        'visual_question_answering': "Describe what you would see in a sunset",
+        'video_question_answering': "What happens in a typical movie scene"
+    }
+    
+    for task_type, query in test_queries.items():
+        print(f"🔍 Testing {task_type} (Essential Mode)...")
+        print(f"   Query: {query}")
+        expected_model = system.models_mapping.get(task_type, 'Unknown')
+        print(f"   Mapped model: {expected_model}")
+        try:
+            response_data = system.process_query(query)
+            model_used = response_data.get('model_used', 'Unknown')
+            response = response_data.get('response', '')
+            print(f"   ✅ Used model: {model_used}")
+            if '[INFO]' in response:
+                print(f"   ℹ️  {response.splitlines()[0]}")
+            print(f"   Response: {response[:120]}{'...' if len(response) > 120 else ''}")
+        except Exception as e:
+            print(f"   ❌ Failed: {e}")
+        print()
+
 def main():
     """Main function."""
     if len(sys.argv) > 1:
@@ -112,8 +158,10 @@ def main():
             model_name = sys.argv[2]
             query = sys.argv[3]
             test_specific_model(model_name, query)
+        elif sys.argv[1] == '--essential':
+            test_essential_mode()
         else:
-            print("Usage: python test_models.py [--model MODEL_NAME QUERY]")
+            print("Usage: python test_models.py [--model MODEL_NAME QUERY | --essential]")
     else:
         test_models()
 

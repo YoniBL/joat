@@ -51,7 +51,8 @@ python main.py
 | `commonsense_reasoning` | **phi3** | Logical reasoning, explanations, common sense | ~2.7GB | ⚡ Medium |
 | `question_answering` | **mistral** | Factual questions, information retrieval | ~4.1GB | 🔥 High |
 | `dialogue_systems` | **llama3** | General conversation, chat | ~4.7GB | 🔥 High |
-| `summarization` | **mixtral** (optional) / **mistral** (default) | Text summarization, key point extraction | ~26GB / ~4.1GB | 💡 Low |
+| `summarization` (advanced) | **mixtral** | Advanced summarization, key point extraction | ~26GB | 💡 Low |
+| `summarization` (essential) | **mistral** | Fast summarization (smaller model) | ~4.1GB | ⚡ Medium |
 | `sentiment_analysis` | **phi3** | Emotion analysis, sentiment detection | ~2.7GB | ⚡ Medium |
 | `visual_question_answering` | **llava** | Image analysis, visual questions | ~4.5GB | ⚡ Medium |
 | `video_question_answering` | **llama3** | Video analysis, motion understanding | ~4.7GB | 💡 Low |
@@ -66,8 +67,8 @@ Each model is carefully chosen for its specialization:
 - **codellama**: Best-in-class code generation
 - **wizard-math**: Specialized for mathematical reasoning
 - **phi3**: Excellent for commonsense and sentiment analysis
-- **mistral**: Strong general knowledge and Q&A
-- **mixtral**: Advanced summarization capabilities
+- **mistral**: Strong general knowledge, Q&A, and fast summarization
+- **mixtral**: Advanced summarization capabilities (large model)
 - **llava**: Visual understanding and image analysis
 
 ## 🚀 Quick Start
@@ -152,14 +153,14 @@ ollama pull llava
 - `codellama` - Code generation
 - `llama3` - Text generation & dialogue
 - `wizard-math` - Mathematical reasoning
-- `mistral` - Question answering
+- `mistral` - Question answering & essential summarization
 
 **⚡ Medium Priority (Enhanced - +12GB):**
 - `phi3` - Commonsense & sentiment analysis
 - `llava` - Visual question answering
 
 **💡 Low Priority (Advanced - +30GB):**
-- `mixtral` - Advanced summarization
+- `mixtral` - Advanced summarization (large model)
 
 ## 🎯 **Usage Examples**
 
