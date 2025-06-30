@@ -51,7 +51,7 @@ python main.py
 | `commonsense_reasoning` | **phi3** | Logical reasoning, explanations, common sense | ~2.7GB | ⚡ Medium |
 | `question_answering` | **mistral** | Factual questions, information retrieval | ~4.1GB | 🔥 High |
 | `dialogue_systems` | **llama3** | General conversation, chat | ~4.7GB | 🔥 High |
-| `summarization` | **mixtral** | Text summarization, key point extraction | ~26GB | 💡 Low |
+| `summarization` | **mixtral** (optional) / **mistral** (default) | Text summarization, key point extraction | ~26GB / ~4.1GB | 💡 Low |
 | `sentiment_analysis` | **phi3** | Emotion analysis, sentiment detection | ~2.7GB | ⚡ Medium |
 | `visual_question_answering` | **llava** | Image analysis, visual questions | ~4.5GB | ⚡ Medium |
 | `video_question_answering` | **llama3** | Video analysis, motion understanding | ~4.7GB | 💡 Low |
@@ -106,6 +106,8 @@ python setup_ollama.py
 **Desktop GUI (Recommended):**
 ```bash
 python gui_app.py
+# or on macOS/Linux
+./start_gui.sh
 ```
 
 **Command Line:**
@@ -162,7 +164,7 @@ ollama pull llava
 ## 🎯 **Usage Examples**
 
 ### **Desktop GUI**
-1. Launch: `python gui_app.py`
+1. Launch: `python gui_app.py` (or `./start_gui.sh` on macOS/Linux)
 2. Type your query in the input box
 3. Press Enter or click Send
 4. Watch the AI route your query to the best model
@@ -257,7 +259,7 @@ joat/
 
 1. **SSD Storage**: Models load faster from SSD
 2. **RAM**: 8GB+ recommended for smooth operation
-3. **GPU**: Optional but speeds up inference
+3. **GPU**: Optional but speeds up inference (if supported by your hardware and Ollama)
 4. **Model Selection**: Use smaller models for faster responses
 
 ## 🤝 **Contributing**
