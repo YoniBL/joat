@@ -32,7 +32,7 @@ python gui_app.py
 
 ### **Command Line Interface**
 ```bash
-python app.py
+python main.py
 ```
 
 **Features:**
