@@ -1,0 +1,10 @@
+{coding_generation: codellama,
+text_generation: llama3,
+mathematical_reasoning: wizard-math,
+commonsense_reasoning: phi3,
+question_answering: mistral,
+dialogue_systems: llama3,
+summarization: mistral,
+sentiment_analysis: phi3,
+visual_question_answering: llama3,
+video_question_answering: llama3}
