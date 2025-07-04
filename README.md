@@ -263,7 +263,7 @@ joat/
 ## 📈 **Performance Tips**
 
 1. **SSD Storage**: Models load faster from SSD
-2. **RAM**: 8GB+ recommended for smooth operation
+2. **RAM**: 16GB+ recommended for smooth operation
 3. **GPU**: Optional but speeds up inference (if supported by your hardware and Ollama)
 4. **Model Selection**: Use smaller models for faster responses
 
