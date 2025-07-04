@@ -169,4 +169,113 @@ ollama pull llava
 ## 🎯 **Usage Examples**
 
 ### **Desktop GUI**
-1. Launch: `python gui_app.py`
+1. Launch: `python gui_app.py` (or `./start_gui.sh` on macOS/Linux)
+2. Type your query in the input box
+3. Press Enter or click Send
+4. Watch the AI route your query to the best model
+5. See which model was used in the response
+
+### **Command Line**
+```bash
+python main.py
+
+You: Write a Python function to calculate fibonacci numbers
+🤖 [Response from codellama]
+
+You: Solve the equation 2x + 5 = 13
+🤖 [Response from wizard-math]
+
+You: What is the capital of France?
+🤖 [Response from llama3]
+```
+
+## 🔧 **Configuration**
+
+### **Models Mapping**
+Edit `models_mapping.txt` to customize which models handle which tasks:
+
+```
+{coding_generation: codellama,
+text_generation: llama3,
+mathematical_reasoning: wizard-math,
+...}
+```
+
+### **Adding New Models**
+1. Install the model: `ollama pull your-model`
+2. Add to `models_mapping.txt`
+3. Restart the app
+
+## 🛠️ **Troubleshooting**
+
+See the [Advanced Guide](docs/ADVANCED_GUIDE.md) for troubleshooting and performance tips.
+
+## 📜 License
+
+The JOAT source code is licensed under the **Apache License 2.0**. You can find the full license text in the [LICENSE](LICENSE) file.
+
+### AI Model Licenses
+The AI models used by this project have their own licenses. When you use JOAT, you are also subject to the license terms of the underlying models, which include:
+- **Llama 3 Community License**: Applies to models like `llama3` and `codellama`.
+- **Apache 2.0**: Applies to models like `mistral`.
+
+It is your responsibility to review and comply with the terms of each model's license and its Acceptable Use Policy.
+
+## 📁 **File Structure**
+
+```
+joat/
+├── main.py              # CLI version
+├── app.py               # Core application logic
+├── gui_app.py           # The GUI application window
+├── start_gui.sh         # GUI launch script for macOS/Linux
+├── ollama_client.py     # Ollama API client
+├── setup_ollama.py      # Model setup script
+├── models_mapping.txt   # Task-to-model mapping
+├── requirements.txt     # Python dependencies
+├── docs/                # Documentation files
+└── README.md            # This file
+```
+
+## 🎨 **GUI Features**
+
+- **Modern Design**: Clean, modern chat-like interface
+- **Real-time Status**: Live Ollama and model status
+- **Model Information**: Shows which models are available
+- **Conversation History**: Maintains chat history
+- **Keyboard Shortcuts**: Enter to send, Shift+Enter for new line
+- **Responsive Layout**: Adapts to window size
+- **Error Handling**: Graceful error messages
+
+## 🔄 **Conversation Management**
+
+### **In GUI:**
+- Click "🗑️ Clear History" to clear all conversations
+- Each model maintains its own conversation context
+- Automatic model switching based on task type
+
+### **In CLI:**
+- Type `clear` to clear history
+- Type `history` to see conversation history
+- Type `status` to check system status
+- Type `quit` to exit
+
+## 📈 **Performance Tips**
+
+1. **SSD Storage**: Models load faster from SSD
+2. **RAM**: 8GB+ recommended for smooth operation
+3. **GPU**: Optional but speeds up inference (if supported by your hardware and Ollama)
+4. **Model Selection**: Use smaller models for faster responses
+
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+
+---
+
+**Enjoy your local AI assistant! 🤖✨** 
