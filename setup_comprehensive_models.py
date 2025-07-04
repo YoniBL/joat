@@ -322,6 +322,8 @@ class ComprehensiveModelSetup:
         print("2. Run the CLI: python main.py")
         print("3. Test with: python example.py")
 
+        print("\n[INFO] Some models (like 'llama3') are used for both essential and advanced tasks. The priority refers to the *task*, not the model. If you install only high-priority models, you will still be able to use advanced tasks, but with generalist models.\n")
+
 def main():
     """Main function."""
     setup = ComprehensiveModelSetup()

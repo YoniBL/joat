@@ -110,14 +110,6 @@ class ModernChatApp:
             cursor='arrow'
         )
         self.model_info.pack(side=tk.RIGHT)
-        # Always show models mapping below model count
-        models_mapping_frame = tk.Frame(self.sidebar, bg=self.colors['bg_secondary'])
-        models_mapping_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
-        tk.Label(models_mapping_frame, text="Model Mapping", font=('SF Pro Display', 11, 'bold'), fg=self.colors['text_primary'], bg=self.colors['bg_secondary']).pack(anchor=tk.W)
-        mapping = self.joat_system.models_mapping
-        for task, model in mapping.items():
-            tk.Label(models_mapping_frame, text=f"{task}", font=('SF Pro Display', 10), fg=self.colors['text_secondary'], bg=self.colors['bg_secondary']).pack(anchor=tk.W)
-            tk.Label(models_mapping_frame, text=f"→ {model}", font=('SF Pro Display', 10, 'bold'), fg=self.colors['accent'], bg=self.colors['bg_secondary']).pack(anchor=tk.W, padx=16)
         separator = tk.Frame(self.sidebar, bg=self.colors['border'], height=1)
         separator.pack(fill=tk.X, padx=16, pady=8)
         conversations_frame = tk.Frame(self.sidebar, bg=self.colors['bg_secondary'])
