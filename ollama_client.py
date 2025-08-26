@@ -9,6 +9,7 @@ import json
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -134,33 +135,38 @@ class OllamaClient:
             logger.error(f"Error getting model info: {e}")
             return {}
 
+def load_models_from_mapping(mapping_file="models_mapping.txt"):
+    """Load model-task mapping from file and return a dict of {task: model}."""
+    if not os.path.exists(mapping_file):
+        raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
+    with open(mapping_file, "r") as f:
+        content = f.read().strip().replace('\n', '').replace(' ', '')
+        content = content[1:-1]  # Remove outer braces
+        mapping = {}
+        for pair in content.split(','):
+            if ':' in pair:
+                task, model = pair.split(':', 1)
+                mapping[task] = model
+        return mapping
+
 class OllamaModelManager:
     """Manages Ollama models for different task types."""
     
     def __init__(self):
         self.client = OllamaClient()
-        self.model_configs = {
-            'codellama': {
-                'description': 'Code generation and programming tasks',
-                'size': '~4GB',
-                'tags': ['coding', 'programming', 'development']
-            },
-            'llama3': {
-                'description': 'General purpose text generation and reasoning',
-                'size': '~4GB',
-                'tags': ['general', 'text', 'reasoning']
-            },
-            'wizard-math': {
-                'description': 'Mathematical reasoning and problem solving',
-                'size': '~4GB',
-                'tags': ['math', 'reasoning', 'problem-solving']
-            },
-            'llava': {
-                'description': 'Visual question answering and image analysis',
-                'size': '~4GB',
-                'tags': ['vision', 'image', 'visual']
-            }
+        # Supplemental metadata for known models (optional, can be extended)
+        self.model_metadata = {
+            'deepseek-coder': {'description': 'Advanced code generation and programming tasks', 'size': '~8GB', 'tags': ['coding', 'programming', 'development']},
+            'llama3.1': {'description': 'General purpose text generation and reasoning (latest)', 'size': '~8GB', 'tags': ['general', 'text', 'reasoning']},
+            'deepseek-r1:8b': {'description': 'Mathematical reasoning, Q&A, and problem solving (8B)', 'size': '~8GB', 'tags': ['math', 'qa', 'reasoning']},
+            'phi3': {'description': 'Commonsense and sentiment analysis', 'size': '~2.7GB', 'tags': ['commonsense', 'sentiment']},
+            'mistral': {'description': 'Summarization and general Q&A', 'size': '~4.1GB', 'tags': ['qa', 'summarization']},
+            'llava': {'description': 'Visual question answering and image analysis', 'size': '~4.5GB', 'tags': ['vision', 'image', 'visual']},
+            'qwen3': {'description': 'Dialogue and conversational AI', 'size': '~7B', 'tags': ['dialogue', 'conversation']},
         }
+        # Load from mapping file
+        mapping = load_models_from_mapping()
+        self.recommended_models = list(set(mapping.values()))
     
     def ensure_model_available(self, model_name: str) -> bool:
         """Ensure a model is available, pull if necessary."""
@@ -172,19 +178,19 @@ class OllamaModelManager:
     
     def get_recommended_models(self) -> List[str]:
         """Get list of recommended models to install."""
-        return list(self.model_configs.keys())
+        return self.recommended_models
     
     def get_model_status(self) -> Dict[str, bool]:
         """Get status of all recommended models."""
         status = {}
-        for model_name in self.model_configs.keys():
+        for model_name in self.recommended_models:
             status[model_name] = self.client.is_model_available(model_name)
         return status
     
     def setup_models(self) -> Dict[str, bool]:
         """Setup all recommended models."""
         results = {}
-        for model_name in self.model_configs.keys():
+        for model_name in self.recommended_models:
             logger.info(f"Setting up model: {model_name}")
             results[model_name] = self.ensure_model_available(model_name)
         return results 

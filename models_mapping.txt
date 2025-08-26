@@ -1,10 +1,10 @@
-{coding_generation: codellama,
-text_generation: llama3,
-mathematical_reasoning: wizard-math,
+{coding_generation: deepseek-coder,
+text_generation: llama3.1,
+mathematical_reasoning: deepseek-r1:8b,
 commonsense_reasoning: phi3,
-question_answering: mistral,
-dialogue_systems: llama3,
+question_answering: deepseek-r1:8b,
+dialogue_systems: qwen3,
 summarization: mistral,
 sentiment_analysis: phi3,
 visual_question_answering: llava,
-video_question_answering: llama3}
+video_question_answering: llama3.1}

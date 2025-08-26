@@ -151,6 +151,20 @@ class LocalModelManager:
         """Setup all recommended models."""
         return self.model_manager.setup_models()
 
+def load_models_from_mapping(mapping_file="models_mapping.txt"):
+    """Load model-task mapping from file and return a dict of {task: model}."""
+    if not os.path.exists(mapping_file):
+        raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
+    with open(mapping_file, "r") as f:
+        content = f.read().strip().replace('\n', '').replace(' ', '')
+        content = content[1:-1]  # Remove outer braces
+        mapping = {}
+        for pair in content.split(','):
+            if ':' in pair:
+                task, model = pair.split(':', 1)
+                mapping[task] = model
+        return mapping
+
 class JOATSystem:
     """Main system class that orchestrates the entire process."""
     
@@ -159,20 +173,12 @@ class JOATSystem:
         self.task_classifier = TaskClassifier()
         self.model_manager = LocalModelManager(self.models_mapping)
         self.essential_mode = essential_mode
-        # Define high-priority fallback models for each task
-        self.high_priority_fallbacks = {
-            'coding_generation': 'codellama',
-            'text_generation': 'llama3',
-            'mathematical_reasoning': 'wizard-math',
-            'commonsense_reasoning': 'llama3',  # fallback to general LLM
-            'question_answering': 'mistral',
-            'dialogue_systems': 'llama3',
-            'summarization': 'mistral',
-            'sentiment_analysis': 'llama3',  # fallback to general LLM
-            'visual_question_answering': None,  # no high-priority fallback
-            'video_question_answering': 'llama3',
-        }
-        self.high_priority_models = {'codellama', 'llama3', 'wizard-math', 'mistral'}
+        # Modular: Use mapping for fallbacks and high-priority models
+        mapping = load_models_from_mapping(models_mapping_file)
+        # Default high-priority models (can be extended or made configurable)
+        default_high_priority = {'deepseek-coder', 'llama3.1', 'deepseek-r1:8b', 'mistral', 'qwen3'}
+        self.high_priority_fallbacks = {task: model for task, model in mapping.items() if model in default_high_priority}
+        self.high_priority_models = set(model for model in mapping.values() if model in default_high_priority)
     
     def load_models_mapping(self, file_path: str) -> Dict[str, str]:
         """Load the models mapping from the specified file."""

@@ -8,72 +8,41 @@ import subprocess
 import sys
 import time
 import requests
+import os
 from typing import Dict, List, Tuple
+
+def load_models_from_mapping(mapping_file="models_mapping.txt"):
+    """Load model-task mapping from file and return a dict of {task: model}."""
+    if not os.path.exists(mapping_file):
+        raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
+    with open(mapping_file, "r") as f:
+        content = f.read().strip().replace('\n', '').replace(' ', '')
+        content = content[1:-1]  # Remove outer braces
+        mapping = {}
+        for pair in content.split(','):
+            if ':' in pair:
+                task, model = pair.split(':', 1)
+                mapping[task] = model
+        return mapping
 
 class ComprehensiveModelSetup:
     def __init__(self):
-        self.models_config = {
-            'coding_generation': {
-                'model': 'codellama',
-                'description': 'Code generation, debugging, programming tasks',
-                'size': '~3.8GB',
-                'priority': 'high'
-            },
-            'text_generation': {
-                'model': 'llama3',
-                'description': 'Creative writing, content generation',
-                'size': '~4.7GB',
-                'priority': 'high'
-            },
-            'mathematical_reasoning': {
-                'model': 'wizard-math',
-                'description': 'Math problems, calculations, equations',
-                'size': '~4.1GB',
-                'priority': 'high'
-            },
-            'commonsense_reasoning': {
-                'model': 'phi3',
-                'description': 'Logical reasoning, explanations, common sense',
-                'size': '~2.7GB',
-                'priority': 'medium'
-            },
-            'question_answering': {
-                'model': 'mistral',
-                'description': 'Factual questions, information retrieval',
-                'size': '~4.1GB',
-                'priority': 'high'
-            },
-            'dialogue_systems': {
-                'model': 'llama3',
-                'description': 'General conversation, chat',
-                'size': '~4.7GB',
-                'priority': 'high'
-            },
-            'summarization': {
-                'model': 'mixtral',
-                'description': 'Text summarization, key point extraction',
-                'size': '~26GB',
-                'priority': 'low'
-            },
-            'sentiment_analysis': {
-                'model': 'phi3',
-                'description': 'Emotion analysis, sentiment detection',
-                'size': '~2.7GB',
-                'priority': 'medium'
-            },
-            'visual_question_answering': {
-                'model': 'llava',
-                'description': 'Image analysis, visual questions',
-                'size': '~4.5GB',
-                'priority': 'medium'
-            },
-            'video_question_answering': {
-                'model': 'llama3',
-                'description': 'Video analysis, motion understanding',
-                'size': '~4.7GB',
-                'priority': 'low'
-            }
+        # Supplemental metadata for known models (optional, can be extended)
+        self.model_metadata = {
+            'deepseek-coder': {'description': 'Advanced code generation and programming tasks', 'size': '~8GB', 'priority': 'high'},
+            'llama3.1': {'description': 'General purpose text generation and reasoning (latest)', 'size': '~8GB', 'priority': 'high'},
+            'deepseek-r1:8b': {'description': 'Mathematical reasoning, Q&A, and problem solving (8B)', 'size': '~8GB', 'priority': 'high'},
+            'phi3': {'description': 'Commonsense and sentiment analysis', 'size': '~2.7GB', 'priority': 'medium'},
+            'mistral': {'description': 'Summarization and general Q&A', 'size': '~4.1GB', 'priority': 'high'},
+            'llava': {'description': 'Visual question answering and image analysis', 'size': '~4.5GB', 'priority': 'medium'},
+            'qwen3': {'description': 'Dialogue and conversational AI', 'size': '~7B', 'priority': 'high'},
         }
+        # Load from mapping file
+        mapping = load_models_from_mapping()
+        self.models_config = {}
+        for task, model in mapping.items():
+            meta = self.model_metadata.get(model, {'description': f'{task} (no desc)', 'size': 'Unknown', 'priority': 'medium'})
+            self.models_config[task] = {'model': model, **meta}
     
     def check_ollama_running(self) -> bool:
         """Check if Ollama is running."""
@@ -165,6 +134,20 @@ class ComprehensiveModelSetup:
                     medium_priority.append((task, config))
                 else:
                     low_priority.append((task, config))
+        
+        # Deduplicate models in each priority group
+        def dedup_models(model_list):
+            seen = set()
+            deduped = []
+            for task, config in model_list:
+                model = config['model']
+                if model not in seen:
+                    deduped.append((task, config))
+                    seen.add(model)
+            return deduped
+        high_priority = dedup_models(high_priority)
+        medium_priority = dedup_models(medium_priority)
+        low_priority = dedup_models(low_priority)
         
         print("🎯 Recommended Installation Order:")
         print()

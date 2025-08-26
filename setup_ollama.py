@@ -104,26 +104,20 @@ def start_ollama():
 def setup_models():
     """Setup recommended models."""
     print("\n📦 Setting up recommended models...")
-    
-    model_manager = OllamaModelManager()
+    model_manager = OllamaModelManager()  # Now loads from models_mapping.txt
     recommended_models = model_manager.get_recommended_models()
-    
     print(f"Recommended models: {', '.join(recommended_models)}")
     print("This will download several GB of data. Continue? (y/n): ", end="")
-    
     response = input().lower().strip()
     if response != 'y':
         print("⏭️  Skipping model setup")
         return
-    
     print("\n🔄 Setting up models (this may take a while)...")
     results = model_manager.setup_models()
-    
     print("\n📊 Setup Results:")
     for model, success in results.items():
         status = "✅" if success else "❌"
         print(f"  {status} {model}")
-    
     successful_models = [model for model, success in results.items() if success]
     if successful_models:
         print(f"\n🎉 Successfully set up {len(successful_models)} models!")
