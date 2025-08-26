@@ -1,0 +1,26 @@
+{
+  "regular_sized_models": {
+    "coding_generation": "yi-coder:9b",
+    "text_generation": "mistral:7b-instruct",
+    "mathematical_reasoning": "qwen2-math:7b",
+    "commonsense_reasoning": "mistral:7b-instruct",
+    "question_answering": "llama3-chatqa:8b",
+    "dialogue_systems": "qwen2.5:7b-instruct",
+    "summarization": "llama3.2:3b-instruct",
+    "sentiment_analysis": "llama3.1:8b-chat",
+    "visual_question_answering": "llava:7b",
+    "video_question_answering": "qwen2.5vl:7b"
+  },
+  "small_sized_models": {
+    "coding_generation": "deepseek-coder:1.3b",
+    "text_generation": "llama3.2:1b",
+    "mathematical_reasoning": "deepscaler:1.5b",
+    "commonsense_reasoning": "tinyllama:1.1b",
+    "question_answering": "phi3.5:3.8b",
+    "dialogue_systems": "qwen2.5:3b-instruct",
+    "summarization": "phi3.5:3.8b",
+    "sentiment_analysis": "llama3.2:1b",
+    "visual_question_answering": "moondream:1.8b",
+    "video_question_answering": "qwen2.5vl:3b"
+  }
+}

@@ -14,7 +14,7 @@ def example_usage():
     system = JOATSystem()
     
     if not system.models_mapping:
-        print("❌ Error: Could not load models mapping. Please check the models_mapping.txt file.")
+        print("❌ Error: Could not load models mapping. Please check the models_mapping.json file.")
         return
     
     print(f"✅ Loaded {len(system.models_mapping)} model mappings")

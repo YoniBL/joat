@@ -9,6 +9,7 @@ import sys
 import os
 import time
 from ollama_client import OllamaModelManager
+import json
 
 def check_ollama_installation():
     """Check if Ollama is installed."""
@@ -102,18 +103,34 @@ def start_ollama():
         return False
 
 def setup_models():
-    """Setup recommended models."""
-    print("\n📦 Setting up recommended models...")
-    model_manager = OllamaModelManager()  # Now loads from models_mapping.txt
-    recommended_models = model_manager.get_recommended_models()
-    print(f"Recommended models: {', '.join(recommended_models)}")
-    print("This will download several GB of data. Continue? (y/n): ", end="")
+    """Setup models for the default comprehensive (regular) profile."""
+    print("\n📦 Installing default model profile: regular_sized_models")
+    mapping_path = os.path.join(os.path.dirname(__file__), 'models_mapping.json')
+    try:
+        with open(mapping_path, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"❌ Failed to load mapping: {e}")
+        return
+
+    profile_key = 'regular_sized_models'
+    profile_models = list((data.get(profile_key) or {}).values())
+    if not profile_models:
+        print("❌ No models found in regular_sized_models profile")
+        return
+
+    print(f"Models to install: {', '.join(profile_models)}")
+    print("This will download data. Continue? (y/n): ", end="")
     response = input().lower().strip()
     if response != 'y':
         print("⏭️  Skipping model setup")
         return
+
+    manager = OllamaModelManager()
+    # override recommended_models during this run to chosen profile
+    manager.recommended_models = profile_models
     print("\n🔄 Setting up models (this may take a while)...")
-    results = model_manager.setup_models()
+    results = manager.setup_models()
     print("\n📊 Setup Results:")
     for model, success in results.items():
         status = "✅" if success else "❌"

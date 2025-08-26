@@ -135,38 +135,35 @@ class OllamaClient:
             logger.error(f"Error getting model info: {e}")
             return {}
 
-def load_models_from_mapping(mapping_file="models_mapping.txt"):
-    """Load model-task mapping from file and return a dict of {task: model}."""
+def load_models_from_mapping(mapping_file: str = "models_mapping.json", profile_key: str = "regular_sized_models"):
+    """Load model-task mapping from JSON file and return a dict of {task: model}."""
     if not os.path.exists(mapping_file):
         raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
     with open(mapping_file, "r") as f:
-        content = f.read().strip().replace('\n', '').replace(' ', '')
-        content = content[1:-1]  # Remove outer braces
-        mapping = {}
-        for pair in content.split(','):
-            if ':' in pair:
-                task, model = pair.split(':', 1)
-                mapping[task] = model
-        return mapping
+        data = json.load(f)
+        if profile_key not in data:
+            raise KeyError(f"Profile '{profile_key}' not found in {mapping_file}")
+        profile_mapping = data[profile_key]
+        if not isinstance(profile_mapping, dict):
+            raise ValueError("Invalid mapping format: profile must be an object of task→model pairs")
+        return profile_mapping
 
 class OllamaModelManager:
     """Manages Ollama models for different task types."""
     
     def __init__(self):
         self.client = OllamaClient()
-        # Supplemental metadata for known models (optional, can be extended)
-        self.model_metadata = {
-            'deepseek-coder': {'description': 'Advanced code generation and programming tasks', 'size': '~8GB', 'tags': ['coding', 'programming', 'development']},
-            'llama3.1': {'description': 'General purpose text generation and reasoning (latest)', 'size': '~8GB', 'tags': ['general', 'text', 'reasoning']},
-            'deepseek-r1:8b': {'description': 'Mathematical reasoning, Q&A, and problem solving (8B)', 'size': '~8GB', 'tags': ['math', 'qa', 'reasoning']},
-            'phi3': {'description': 'Commonsense and sentiment analysis', 'size': '~2.7GB', 'tags': ['commonsense', 'sentiment']},
-            'mistral': {'description': 'Summarization and general Q&A', 'size': '~4.1GB', 'tags': ['qa', 'summarization']},
-            'llava': {'description': 'Visual question answering and image analysis', 'size': '~4.5GB', 'tags': ['vision', 'image', 'visual']},
-            'qwen3': {'description': 'Dialogue and conversational AI', 'size': '~7B', 'tags': ['dialogue', 'conversation']},
-        }
-        # Load from mapping file
-        mapping = load_models_from_mapping()
-        self.recommended_models = list(set(mapping.values()))
+        # Recommended models: union of small and regular profiles from JSON
+        try:
+            data = {}
+            mapping_path = os.path.join(os.path.dirname(__file__), 'models_mapping.json')
+            with open(mapping_path, 'r') as f:
+                data = json.load(f)
+            regular = data.get('regular_sized_models', {})
+            small = data.get('small_sized_models', {})
+            self.recommended_models = sorted(list(set(list(regular.values()) + list(small.values()))))
+        except Exception:
+            self.recommended_models = []
     
     def ensure_model_available(self, model_name: str) -> bool:
         """Ensure a model is available, pull if necessary."""

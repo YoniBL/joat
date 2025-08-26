@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-JOAT Comprehensive Model Setup
-Installs the best specialized open-source models for each task type.
+JOAT Profile Model Setup (small or regular)
+Installs models for the selected profile defined in models_mapping.json.
 """
 
 import subprocess
@@ -10,39 +10,31 @@ import time
 import requests
 import os
 from typing import Dict, List, Tuple
+import json
 
-def load_models_from_mapping(mapping_file="models_mapping.txt"):
-    """Load model-task mapping from file and return a dict of {task: model}."""
+def load_models_from_mapping(mapping_file="models_mapping.json", profile_key: str = "regular_sized_models"):
+    """Load model-task mapping from JSON and return a dict of {task: model}."""
     if not os.path.exists(mapping_file):
         raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
     with open(mapping_file, "r") as f:
-        content = f.read().strip().replace('\n', '').replace(' ', '')
-        content = content[1:-1]  # Remove outer braces
-        mapping = {}
-        for pair in content.split(','):
-            if ':' in pair:
-                task, model = pair.split(':', 1)
-                mapping[task] = model
-        return mapping
+        data = json.load(f)
+        if profile_key not in data:
+            raise KeyError(f"Profile '{profile_key}' not found in {mapping_file}")
+        profile_mapping = data[profile_key]
+        if not isinstance(profile_mapping, dict):
+            raise ValueError("Invalid mapping format: profile must be an object of task→model pairs")
+        return profile_mapping
 
 class ComprehensiveModelSetup:
     def __init__(self):
-        # Supplemental metadata for known models (optional, can be extended)
-        self.model_metadata = {
-            'deepseek-coder': {'description': 'Advanced code generation and programming tasks', 'size': '~8GB', 'priority': 'high'},
-            'llama3.1': {'description': 'General purpose text generation and reasoning (latest)', 'size': '~8GB', 'priority': 'high'},
-            'deepseek-r1:8b': {'description': 'Mathematical reasoning, Q&A, and problem solving (8B)', 'size': '~8GB', 'priority': 'high'},
-            'phi3': {'description': 'Commonsense and sentiment analysis', 'size': '~2.7GB', 'priority': 'medium'},
-            'mistral': {'description': 'Summarization and general Q&A', 'size': '~4.1GB', 'priority': 'high'},
-            'llava': {'description': 'Visual question answering and image analysis', 'size': '~4.5GB', 'priority': 'medium'},
-            'qwen3': {'description': 'Dialogue and conversational AI', 'size': '~7B', 'priority': 'high'},
+        # Load from mapping file (both profiles)
+        mapping_path = os.path.join(os.path.dirname(__file__), 'models_mapping.json')
+        with open(mapping_path, 'r') as f:
+            data = json.load(f)
+        self.profiles = {
+            'small_sized_models': data.get('small_sized_models', {}),
+            'regular_sized_models': data.get('regular_sized_models', {})
         }
-        # Load from mapping file
-        mapping = load_models_from_mapping()
-        self.models_config = {}
-        for task, model in mapping.items():
-            meta = self.model_metadata.get(model, {'description': f'{task} (no desc)', 'size': 'Unknown', 'priority': 'medium'})
-            self.models_config[task] = {'model': model, **meta}
     
     def check_ollama_running(self) -> bool:
         """Check if Ollama is running."""
@@ -103,106 +95,35 @@ class ComprehensiveModelSetup:
         return "Unknown"
     
     def show_model_selection(self) -> List[str]:
-        """Show model selection interface."""
-        print("\n🤖 JOAT Comprehensive Model Setup")
+        """Show profile selection and return list of models for that profile."""
+        print("\n🤖 JOAT Model Profile Setup")
         print("=" * 60)
-        print("This will install the best specialized models for each task type.")
-        print("Models are ranked by priority and specialization.")
-        print()
-        
-        # Show current models
-        installed_models = self.get_installed_models()
-        print("📦 Currently installed models:")
-        if installed_models:
-            for model in installed_models:
-                print(f"   ✅ {model}")
-        else:
-            print("   None")
-        print()
-        
-        # Show recommended models by priority
-        high_priority = []
-        medium_priority = []
-        low_priority = []
-        
-        for task, config in self.models_config.items():
-            model = config['model']
-            if model not in installed_models:
-                if config['priority'] == 'high':
-                    high_priority.append((task, config))
-                elif config['priority'] == 'medium':
-                    medium_priority.append((task, config))
-                else:
-                    low_priority.append((task, config))
-        
-        # Deduplicate models in each priority group
-        def dedup_models(model_list):
-            seen = set()
-            deduped = []
-            for task, config in model_list:
-                model = config['model']
-                if model not in seen:
-                    deduped.append((task, config))
-                    seen.add(model)
-            return deduped
-        high_priority = dedup_models(high_priority)
-        medium_priority = dedup_models(medium_priority)
-        low_priority = dedup_models(low_priority)
-        
-        print("🎯 Recommended Installation Order:")
-        print()
-        
-        if high_priority:
-            print("🔥 HIGH PRIORITY (Essential for core functionality):")
-            for task, config in high_priority:
-                print(f"   • {config['model']} ({config['size']}) - {config['description']}")
-            print()
-        
-        if medium_priority:
-            print("⚡ MEDIUM PRIORITY (Specialized capabilities):")
-            for task, config in medium_priority:
-                print(f"   • {config['model']} ({config['size']}) - {config['description']}")
-            print()
-        
-        if low_priority:
-            print("💡 LOW PRIORITY (Advanced features):")
-            for task, config in low_priority:
-                print(f"   • {config['model']} ({config['size']}) - {config['description']}")
-            print()
-        
-        # Calculate sizes
-        all_missing = [config['model'] for _, config in high_priority + medium_priority + low_priority]
-        total_size = self.calculate_total_size(all_missing)
-        
-        print(f"📊 Total download size: {total_size}")
-        print()
-        
-        # Get user choice
-        print("Choose installation option:")
-        print("1. Install HIGH PRIORITY only (recommended for first time)")
-        print("2. Install HIGH + MEDIUM priority")
-        print("3. Install ALL models (full experience)")
-        print("4. Custom selection")
-        print("5. Skip installation")
-        
+        print("Select which profile to install:")
+        print("1. small_sized_models (fast and lightweight)")
+        print("2. regular_sized_models (higher quality)")
         while True:
             try:
-                choice = input("\nEnter your choice (1-5): ").strip()
+                choice = input("\nEnter your choice (1-2): ").strip()
                 if choice == '1':
-                    return [config['model'] for _, config in high_priority]
+                    profile_key = 'small_sized_models'
+                    break
                 elif choice == '2':
-                    return [config['model'] for _, config in high_priority + medium_priority]
-                elif choice == '3':
-                    return [config['model'] for _, config in high_priority + medium_priority + low_priority]
-                elif choice == '4':
-                    return self.custom_selection(high_priority + medium_priority + low_priority)
-                elif choice == '5':
-                    return []
+                    profile_key = 'regular_sized_models'
+                    break
                 else:
-                    print("Please enter a number between 1-5")
+                    print("Please enter 1 or 2")
             except KeyboardInterrupt:
                 print("\n\nInstallation cancelled.")
                 return []
+        models = list(self.profiles.get(profile_key, {}).values())
+        print(f"\nSelected profile: {profile_key}")
+        if models:
+            print("Models to install:")
+            for m in models:
+                print(f"   • {m}")
+        else:
+            print("No models configured for this profile.")
+        return models
     
     def custom_selection(self, all_models: List[Tuple[str, Dict]]) -> List[str]:
         """Allow custom model selection."""
@@ -305,7 +226,7 @@ class ComprehensiveModelSetup:
         print("2. Run the CLI: python main.py")
         print("3. Test with: python example.py")
 
-        print("\n[INFO] Some models (like 'llama3') are used for both essential and advanced tasks. The priority refers to the *task*, not the model. If you install only high-priority models, you will still be able to use advanced tasks, but with generalist models.\n")
+        print("\n[INFO] You can switch profiles later by setting JOAT_PROFILE=small_sized_models or regular_sized_models.\n")
 
 def main():
     """Main function."""

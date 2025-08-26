@@ -18,7 +18,7 @@ def test_models():
     system = JOATSystem()
     
     if not system.models_mapping:
-        print("❌ Error: Could not load models mapping")
+        print("❌ Error: Could not load models mapping (check models_mapping.json)")
         return
     
     print(f"✅ Loaded {len(system.models_mapping)} model mappings")
@@ -46,13 +46,14 @@ def test_models():
         print(f"   Expected model: {system.models_mapping.get(task_type, 'Unknown')}")
         
         try:
-            response = system.process_query(query)
+            response_data = system.process_query(query)
+            resp_text = response_data.get('response', '')
             results[task_type] = {
                 'success': True,
-                'response': response[:200] + "..." if len(response) > 200 else response,
-                'model': system.models_mapping.get(task_type, 'Unknown')
+                'response': resp_text[:200] + "..." if len(resp_text) > 200 else resp_text,
+                'model': response_data.get('model_used', 'Unknown')
             }
-            print(f"   ✅ Success - Model: {system.models_mapping.get(task_type, 'Unknown')}")
+            print(f"   ✅ Success - Model: {response_data.get('model_used', 'Unknown')}")
         except Exception as e:
             results[task_type] = {
                 'success': False,
@@ -99,7 +100,7 @@ def test_specific_model(model_name: str, query: str):
     system = JOATSystem()
     
     try:
-        response = system.model_manager.send_query(model_name, query)
+        response = system.model_manager.send_query(model_name, query, history=[])
         print(f"✅ Success!")
         print(f"Response: {response}")
     except Exception as e:

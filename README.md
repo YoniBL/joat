@@ -41,37 +41,35 @@ python main.py
 - 📝 Scriptable and automatable
 - 🖥️ Works on any terminal
 
-## Supported Task Types
+## Supported Task Types and Models
 
-| Task Type | Model | Description | Size | Priority |
-|-----------|-------|-------------|------|----------|
-| `coding_generation` | **codellama** | Code generation, debugging, programming tasks | ~3.8GB | 🔥 High |
-| `text_generation` | **llama3** | Creative writing, content generation | ~4.7GB | 🔥 High |
-| `mathematical_reasoning` | **wizard-math** | Math problems, calculations, equations | ~4.1GB | 🔥 High |
-| `commonsense_reasoning` | **phi3** | Logical reasoning, explanations, common sense | ~2.7GB | ⚡ Medium |
-| `question_answering` | **mistral** | Factual questions, information retrieval | ~4.1GB | 🔥 High |
-| `dialogue_systems` | **llama3** | General conversation, chat | ~4.7GB | 🔥 High |
-| `summarization` (advanced) | **mixtral** | Advanced summarization, key point extraction | ~26GB | 💡 Low |
-| `summarization` (essential) | **mistral** | Fast summarization (smaller model) | ~4.1GB | ⚡ Medium |
-| `sentiment_analysis` | **phi3** | Emotion analysis, sentiment detection | ~2.7GB | ⚡ Medium |
-| `visual_question_answering` | **llava** | Image analysis, visual questions | ~4.5GB | ⚡ Medium |
-| `video_question_answering` | **llama3** | Video analysis, motion understanding | ~4.7GB | 💡 Low |
+JOAT uses a single comprehensive installation by default (regular profile). You can optionally switch to a small profile for lower resource usage. The mapping lives in `models_mapping.json`.
 
-**Why This Model Selection?**
+Regular profile models:
+- coding_generation: yi-coder:9b
+- text_generation: mistral:7b-instruct
+- mathematical_reasoning: qwen2-math:7b
+- commonsense_reasoning: mistral:7b-instruct
+- question_answering: llama3-chatqa:8b
+- dialogue_systems: qwen2.5:7b-instruct
+- summarization: llama3.2:3b-instruct
+- sentiment_analysis: llama3.1:8b-chat
+- visual_question_answering: llava:7b
+- video_question_answering: qwen2.5vl:7b
 
-- **🔥 High Priority**: Essential models for core functionality
-- **⚡ Medium Priority**: Specialized models for enhanced capabilities  
-- **💡 Low Priority**: Advanced features for power users
+Small profile models (optional):
+- coding_generation: deepseek-coder:1.3b
+- text_generation: llama3.2:1b
+- mathematical_reasoning: deepscaler:1.5b
+- commonsense_reasoning: tinyllama:1.1b
+- question_answering: phi3.5:3.8b
+- dialogue_systems: qwen2.5:3b-instruct
+- summarization: phi3.5:3.8b
+- sentiment_analysis: llama3.2:1b
+- visual_question_answering: moondream:1.8b
+- video_question_answering: qwen2.5vl:3b
 
-Each model is carefully chosen for its specialization:
-- **codellama**: Best-in-class code generation
-- **wizard-math**: Specialized for mathematical reasoning
-- **phi3**: Excellent for commonsense and sentiment analysis
-- **mistral**: Strong general knowledge, Q&A, and fast summarization
-- **mixtral**: Advanced summarization capabilities (large model)
-- **llava**: Visual understanding and image analysis
-
-**Note:** Some models (such as `llama3`) are used for both essential and advanced tasks. The priority listed in this table refers to the *task*, not the model. If you install only high-priority models, you will still be able to use advanced features, but with generalist models.
+Each model in the profiles is selected to specialize per task (coding, math, QA, etc.), balancing quality and performance. You can switch profiles at runtime if needed.
 
 ## 🚀 Quick Start
 
@@ -99,9 +97,9 @@ ollama serve               # Any platform
 pip install -r requirements.txt
 ```
 
-### 4. **Install AI Models** (Optional - will auto-download when needed)
+### 4. **Install AI Models** (Default: Comprehensive)
 ```bash
-python setup_ollama.py
+python setup_comprehensive_models.py
 ```
 
 ### 5. **Launch the App**
@@ -122,49 +120,27 @@ python main.py
 
 The app will automatically download models as needed, but you can pre-install them:
 
-### **Comprehensive Setup (Recommended)**
+### **Install Models**
 ```bash
-# Install the best specialized models for each task
+# Default comprehensive (regular profile) interactive installer
 python setup_comprehensive_models.py
-```
 
-This script will:
-- Show you which models are recommended for each task type
-- Let you choose installation priority (High/Medium/Low)
-- Calculate total download size
-- Install models with progress tracking
+# Optional minimal one-shot installer (installs regular profile without prompting)
+python setup_ollama.py
+```
 
 ### **Manual Installation**
 ```bash
-# Install all recommended models
-python setup_ollama.py
-
-# Or install individually
-ollama pull llama3
-ollama pull codellama
-ollama pull wizard-math
-ollama pull phi3
-ollama pull mistral
-ollama pull mixtral
-ollama pull llava
+# Pull any model from the mapping manually
+ollama pull yi-coder:9b
+ollama pull qwen2.5:7b-instruct
+... # etc.
 ```
 
-### **Installation Options**
+### **Profiles**
 
-**🔥 High Priority (Essential - ~17GB total):**
-- `codellama` - Code generation
-- `llama3` - Text generation & dialogue (also used for advanced tasks like video QA)
-- `wizard-math` - Mathematical reasoning
-- `mistral` - Question answering & essential summarization
-
-**⚡ Medium Priority (Enhanced - +12GB):**
-- `phi3` - Commonsense & sentiment analysis
-- `llava` - Visual question answering
-
-**💡 Low Priority (Advanced - +30GB):**
-- `mixtral` - Advanced summarization (large model)
-
-> **Note:** Some models (like `llama3`) are used for both essential and advanced tasks. The priority refers to the *task*, not the model. If you install only high-priority models, you will still be able to use advanced features, but with generalist models.
+- small_sized_models: optimized for speed and low memory.
+- regular_sized_models: balanced quality and performance (default install).
 
 ## 🎯 **Usage Examples**
 
@@ -191,20 +167,42 @@ You: What is the capital of France?
 
 ## 🔧 **Configuration**
 
-### **Models Mapping**
-Edit `models_mapping.txt` to customize which models handle which tasks:
+### **Models Mapping Format**
+Edit `models_mapping.json` to customize which models handle which tasks per profile:
 
-```
-{coding_generation: codellama,
-text_generation: llama3,
-mathematical_reasoning: wizard-math,
-...}
+```json
+{
+  "regular_sized_models": {
+    "coding_generation": "yi-coder:9b",
+    "text_generation": "mistral:7b-instruct",
+    "mathematical_reasoning": "qwen2-math:7b",
+    "commonsense_reasoning": "mistral:7b-instruct",
+    "question_answering": "llama3-chatqa:8b",
+    "dialogue_systems": "qwen2.5:7b-instruct",
+    "summarization": "llama3.2:8b-instruct",
+    "sentiment_analysis": "llama3.1:8b-chat",
+    "visual_question_answering": "llava:7b",
+    "video_question_answering": "qwen2-vl:7b-instruct"
+  },
+  "small_sized_models": {
+    "coding_generation": "stablecode:3b",
+    "text_generation": "llama3.2:1b",
+    "mathematical_reasoning": "deepscaler:1.5b",
+    "commonsense_reasoning": "tinyllama:1.1b",
+    "question_answering": "phi3.5:3.8b",
+    "dialogue_systems": "qwen2.5:3b-instruct",
+    "summarization": "phi3.5:3.8b",
+    "sentiment_analysis": "llama3.2:1b",
+    "visual_question_answering": "moondream:2",
+    "video_question_answering": "qwen2-vl:2b-instruct"
+  }
+}
 ```
 
-### **Adding New Models**
-1. Install the model: `ollama pull your-model`
-2. Add to `models_mapping.txt`
-3. Restart the app
+### **Selecting a Profile at Runtime**
+- Default: auto-detected. The app uses `regular_sized_models` only if all regular-profile models in `models_mapping.json` are installed. Otherwise, it uses `small_sized_models`.
+- Force via env var: `export JOAT_PROFILE=small_sized_models` or `regular_sized_models`
+- Programmatic override: `JOATSystem(models_mapping_file="models_mapping.json", profile_key="small_sized_models")`
 
 ## 🛠️ **Troubleshooting**
 
@@ -230,8 +228,8 @@ joat/
 ├── gui_app.py           # The GUI application window
 ├── start_gui.sh         # GUI launch script for macOS/Linux
 ├── ollama_client.py     # Ollama API client
-├── setup_ollama.py      # Model setup script
-├── models_mapping.txt   # Task-to-model mapping
+├── setup_ollama.py      # Model setup script (installs regular by default)
+├── models_mapping.json  # Task-to-model mapping (profiles)
 ├── requirements.txt     # Python dependencies
 ├── docs/                # Documentation files
 └── README.md            # This file

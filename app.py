@@ -39,6 +39,39 @@ class TaskClassifier:
     """Classifies user queries into task types."""
     
     def __init__(self):
+        # Math vs coding pattern indicators
+        self.math_indicators = {
+            'strong': [
+                r'\b\d+\s*[\+\-\*/\^]\s*\d+',  # Mathematical expressions
+                r'\b(?:sin|cos|tan|log|ln|sqrt|integral|derivative)\b',  # Math functions
+                r'\b(?:equation|formula|theorem|proof|algebra|calculus|geometry|statistics)\b',
+                r'\b(?:solve for [a-z]|find [a-z]|what is [a-z])\b',  # Math problem patterns
+                r'\b(?:degrees|radians|percentage|probability)\b',
+                r'[=<>≤≥≠±∞π∑∏∫]',  # Mathematical symbols
+            ],
+            'medium': [
+                r'\b(?:calculate|compute|evaluate|simplify|factor)\b',
+                r'\b(?:number|value|result|answer)\s+(?:of|is|equals)\b',
+                r'\b(?:math|mathematics|mathematical)\b',
+            ]
+        }
+        
+        self.coding_indicators = {
+            'strong': [
+                r'\b(?:def|class|import|from|return|if|else|elif|for|while|try|except)\b',  # Python keywords
+                r'\b(?:function|variable|array|object|string|boolean|integer)\b',
+                r'\b(?:debug|compile|run|execute|script|program|code)\b',
+                r'\b(?:API|database|server|client|web|framework)\b',
+                r'[\{\}\[\]();<>].*[\{\}\[\]();]',  # Code-like syntax
+                r'\b(?:\.py|\.js|\.java|\.cpp|\.html|\.css)\b',  # File extensions
+            ],
+            'medium': [
+                r'\b(?:algorithm|data structure|loop|recursion|iteration)\b',
+                r'\b(?:implement|develop|build|create)\s+(?:a|an|the)?\s*(?:program|function|class|script)\b',
+                r'\b(?:programming|coding|software|development)\b',
+            ]
+        }
+        
         self.task_keywords = {
             'coding_generation': [
                 'code', 'program', 'function', 'class', 'algorithm', 'debug', 'fix', 'implement',
@@ -82,9 +115,60 @@ class TaskClassifier:
             ]
         }
     
+    def _calculate_pattern_score(self, query: str, patterns: Dict[str, List[str]]) -> float:
+        """Calculate weighted pattern matching score."""
+        score = 0.0
+        query_lower = query.lower()
+        
+        for weight_name, pattern_list in patterns.items():
+            weight = 3.0 if weight_name == 'strong' else 1.5
+            
+            for pattern in pattern_list:
+                matches = len(re.findall(pattern, query_lower))
+                score += matches * weight
+        
+        return score
+    
+    def _is_math_vs_coding(self, query: str) -> Tuple[Optional[str], float]:
+        """Specialized function to distinguish math from coding tasks."""
+        math_score = self._calculate_pattern_score(query, self.math_indicators)
+        coding_score = self._calculate_pattern_score(query, self.coding_indicators)
+        
+        query_lower = query.lower()
+        
+        # Additional context clues
+        if any(word in query_lower for word in ['equation', 'derivative', 'integral', 'theorem']):
+            math_score += 2.0
+        
+        if any(word in query_lower for word in ['function', 'class', 'import', 'debug']):
+            coding_score += 2.0
+        
+        # Contextual disambiguation for "solve"
+        if 'solve' in query_lower:
+            if any(term in query_lower for term in ['for x', 'for y', 'equation', 'formula']):
+                math_score += 1.5
+            elif any(term in query_lower for term in ['problem', 'challenge', 'leetcode', 'algorithm']):
+                coding_score += 1.5
+        
+        confidence = abs(math_score - coding_score) / max(math_score + coding_score, 1.0)
+        
+        if math_score > coding_score:
+            return 'mathematical_reasoning', confidence
+        elif coding_score > math_score:
+            return 'coding_generation', confidence
+        else:
+            return None, 0.0
+    
     def classify_task(self, query: str) -> str:
         """Classify the user query into a task type."""
         query_lower = query.lower()
+        
+        # First, try to distinguish math vs coding specifically
+        ambiguous_terms = ['solve', 'algorithm', 'problem', 'calculate', 'compute']
+        if any(term in query_lower for term in ambiguous_terms):
+            task, confidence = self._is_math_vs_coding(query)
+            if task and confidence > 0.3:
+                return task
         
         # Count keyword matches for each task type
         task_scores = {}
@@ -151,53 +235,59 @@ class LocalModelManager:
         """Setup all recommended models."""
         return self.model_manager.setup_models()
 
-def load_models_from_mapping(mapping_file="models_mapping.txt"):
-    """Load model-task mapping from file and return a dict of {task: model}."""
+def load_models_from_mapping(mapping_file: str = "models_mapping.json", profile_key: str = "regular_sized_models") -> Dict[str, str]:
+    """Load model-task mapping from JSON file by profile and return a dict of {task: model}."""
     if not os.path.exists(mapping_file):
         raise FileNotFoundError(f"Mapping file not found: {mapping_file}")
     with open(mapping_file, "r") as f:
-        content = f.read().strip().replace('\n', '').replace(' ', '')
-        content = content[1:-1]  # Remove outer braces
-        mapping = {}
-        for pair in content.split(','):
-            if ':' in pair:
-                task, model = pair.split(':', 1)
-                mapping[task] = model
-        return mapping
+        data = json.load(f)
+        if profile_key not in data:
+            raise KeyError(f"Profile '{profile_key}' not found in {mapping_file}")
+        profile_mapping = data[profile_key]
+        if not isinstance(profile_mapping, dict):
+            raise ValueError("Invalid mapping format: profile must be an object of task→model pairs")
+        return profile_mapping
 
 class JOATSystem:
     """Main system class that orchestrates the entire process."""
     
-    def __init__(self, models_mapping_file: str = "models_mapping.txt", essential_mode: bool = False):
-        self.models_mapping = self.load_models_mapping(models_mapping_file)
+    def __init__(self, models_mapping_file: str = "models_mapping.json", profile_key: str = None, essential_mode: bool = False):
+        # Determine active profile: explicit arg, env var, or auto-detect based on installed models
+        env_profile = os.getenv("JOAT_PROFILE", "").strip()
+        self.profile_key = profile_key or (env_profile if env_profile in {"small_sized_models", "regular_sized_models"} else None)
+        if not self.profile_key:
+            # Auto-detect profile: choose regular ONLY if all regular models are installed; otherwise choose small
+            try:
+                mapping_path = os.path.join(os.path.dirname(__file__), 'models_mapping.json')
+                with open(mapping_path, 'r') as f:
+                    data = json.load(f)
+                small_models = set((data.get('small_sized_models') or {}).values())
+                regular_models = set((data.get('regular_sized_models') or {}).values())
+                available = set(OllamaClient().get_available_models())
+                def is_model_installed(model_name: str) -> bool:
+                    name_no_tag = model_name.split(':')[0]
+                    return any(
+                        a == model_name or a == f"{model_name}:latest" or a.split(':')[0] == name_no_tag
+                        for a in available
+                    )
+                all_regular_installed = all(is_model_installed(m) for m in regular_models) if regular_models else False
+                self.profile_key = 'regular_sized_models' if all_regular_installed else 'small_sized_models'
+            except Exception:
+                self.profile_key = 'regular_sized_models'
+        self.models_mapping = self.load_models_mapping(models_mapping_file, self.profile_key)
         self.task_classifier = TaskClassifier()
         self.model_manager = LocalModelManager(self.models_mapping)
         self.essential_mode = essential_mode
-        # Modular: Use mapping for fallbacks and high-priority models
-        mapping = load_models_from_mapping(models_mapping_file)
-        # Default high-priority models (can be extended or made configurable)
-        default_high_priority = {'deepseek-coder', 'llama3.1', 'deepseek-r1:8b', 'mistral', 'qwen3'}
-        self.high_priority_fallbacks = {task: model for task, model in mapping.items() if model in default_high_priority}
-        self.high_priority_models = set(model for model in mapping.values() if model in default_high_priority)
+        # High-priority concept simplified: consider active profile models as the set
+        self.high_priority_fallbacks = {}
+        self.high_priority_models = set(self.models_mapping.values())
     
-    def load_models_mapping(self, file_path: str) -> Dict[str, str]:
-        """Load the models mapping from the specified file."""
+    def load_models_mapping(self, file_path: str, profile_key: str) -> Dict[str, str]:
+        """Load the models mapping from the specified JSON file and profile."""
         try:
-            with open(file_path, 'r') as f:
-                content = f.read().strip()
-                # Parse the simple format: {task: model, task: model}
-                content = content.replace('\n', '').replace(' ', '')
-                content = content[1:-1]  # Remove outer braces
-                
-                mapping = {}
-                for pair in content.split(','):
-                    if ':' in pair:
-                        task, model = pair.split(':', 1)
-                        mapping[task] = model
-                
-                logger.info(f"Loaded models mapping: {mapping}")
-                return mapping
-                
+            mapping = load_models_from_mapping(file_path, profile_key)
+            logger.info(f"Loaded models mapping for profile '{profile_key}': {mapping}")
+            return mapping
         except FileNotFoundError:
             logger.error(f"Models mapping file not found: {file_path}")
             return {}
@@ -273,7 +363,7 @@ def main():
     system = JOATSystem()
     
     if not system.models_mapping:
-        print("❌ Error: Could not load models mapping. Please check the models_mapping.txt file.")
+        print("❌ Error: Could not load models mapping. Please check the models_mapping.json file.")
         return
     
     print(f"✅ Loaded {len(system.models_mapping)} model mappings")
@@ -287,6 +377,7 @@ def main():
     else:
         print("✅ Ollama is running")
         print(f"📦 Available models: {', '.join(status['available_models']) if status['available_models'] else 'None'}")
+        print(f"🧩 Active profile: {system.profile_key}")
     
     print()
     
